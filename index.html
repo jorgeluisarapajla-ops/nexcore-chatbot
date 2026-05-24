@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexCore Tech — Asistente de Soporte</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
+  :root {
+    --ng: #00f5c4; --nb: #5b8fff;
+    --bg: #07080f; --bgc: #0d0f1e; --bgi: #111427;
+    --br: #1a1f3a; --tx: #e8eaf6; --tm: #5a6080;
+    --bb: #0d1a2e; --ub: #0a2218;
+    --log-bg: #080d1a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); font-family:'Exo 2',sans-serif; color:var(--tx); height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,245,196,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,196,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+
+  /* LAYOUT PRINCIPAL */
+  .app { width:100%; max-width:1100px; height:100vh; display:flex; flex-direction:column; position:relative; z-index:1; padding:0 12px; transition: max-width 0.4s ease; }
+  .app.modo-trans { max-width:1100px; }
+
+  /* HEADER */
+  header { padding:14px 0 12px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--br); flex-shrink:0; }
+  .logo-icon { width:40px; height:40px; border:1.5px solid var(--ng); border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(0,245,196,0.05); box-shadow:0 0 12px rgba(0,245,196,0.15); flex-shrink:0; }
+  .logo-icon svg { width:24px; height:24px; }
+  .brand-name { font-size:17px; font-weight:700; color:#fff; }
+  .brand-name span { color:var(--ng); }
+  .status-line { display:flex; align-items:center; gap:6px; margin-top:2px; }
+  .sdot { width:7px; height:7px; border-radius:50%; background:var(--ng); box-shadow:0 0 6px var(--ng); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .stxt { font-size:10px; color:var(--ng); font-family:'Share Tech Mono',monospace; letter-spacing:1px; }
+  .hbadge { font-size:10px; font-family:'Share Tech Mono',monospace; color:var(--tm); letter-spacing:1px; text-align:right; line-height:1.6; }
+
+  /* BOTÓN MODO TRANSPARENTE */
+  .trans-btn { margin-left:auto; background:transparent; border:1px solid var(--br); color:var(--tm); font-family:'Exo 2',sans-serif; font-size:11px; padding:6px 14px; border-radius:20px; cursor:pointer; transition:all 0.25s; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .trans-btn:hover { border-color:var(--ng); color:var(--ng); background:rgba(0,245,196,0.05); }
+  .trans-btn.active { border-color:var(--ng); color:var(--ng); background:rgba(0,245,196,0.08); box-shadow:0 0 10px rgba(0,245,196,0.15); }
+  .trans-icon { font-size:13px; }
+
+  /* CONTENIDO PRINCIPAL — DOS COLUMNAS */
+  .main-content { flex:1; display:flex; gap:12px; overflow:hidden; padding:10px 0; }
+
+  /* COLUMNA CHAT */
+  .chat-col { display:flex; flex-direction:column; flex:1; min-width:0; transition:flex 0.4s ease; }
+
+  /* COLUMNA LOG */
+  .log-col { width:0; overflow:hidden; display:flex; flex-direction:column; transition:width 0.4s ease, opacity 0.3s ease; opacity:0; }
+  .log-col.visible { width:360px; opacity:1; }
+
+  .log-panel { flex:1; background:var(--log-bg); border:1px solid rgba(0,245,196,0.12); border-radius:14px; display:flex; flex-direction:column; overflow:hidden; }
+  .log-header { padding:10px 14px; border-bottom:1px solid rgba(0,245,196,0.1); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .log-header-title { font-size:11px; font-weight:600; color:var(--ng); font-family:'Share Tech Mono',monospace; letter-spacing:1.5px; }
+  .log-dot { width:6px; height:6px; border-radius:50%; background:var(--ng); box-shadow:0 0 5px var(--ng); animation:pulse 1.5s infinite; }
+  .log-body { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:7px; scrollbar-width:thin; scrollbar-color:var(--br) transparent; }
+  .log-body::-webkit-scrollbar { width:3px; }
+  .log-body::-webkit-scrollbar-thumb { background:var(--br); }
+  .log-empty { text-align:center; color:var(--tm); font-size:12px; font-family:'Share Tech Mono',monospace; padding:2rem 1rem; line-height:1.8; }
+
+  /* ENTRADAS DE LOG */
+  .log-entry { border-radius:8px; padding:8px 10px; border:1px solid; animation:fadeRight 0.3s ease; }
+  @keyframes fadeRight { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
+  .log-entry.recv { border-color:rgba(91,143,255,0.25); background:rgba(91,143,255,0.05); }
+  .log-entry.parse { border-color:rgba(251,191,36,0.25); background:rgba(251,191,36,0.04); }
+  .log-entry.match { border-color:rgba(0,245,196,0.25); background:rgba(0,245,196,0.04); }
+  .log-entry.nomatch { border-color:rgba(239,68,68,0.25); background:rgba(239,68,68,0.04); }
+  .log-entry.conf { border-color:rgba(168,85,247,0.25); background:rgba(168,85,247,0.04); }
+  .log-entry.out { border-color:rgba(0,245,196,0.4); background:rgba(0,245,196,0.06); }
+  .log-lbl { font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:5px; font-family:'Share Tech Mono',monospace; }
+  .log-lbl.recv { color:#5b8fff; }
+  .log-lbl.parse { color:#fbbf24; }
+  .log-lbl.match { color:var(--ng); }
+  .log-lbl.nomatch { color:#ef4444; }
+  .log-lbl.conf { color:#a855f7; }
+  .log-lbl.out { color:var(--ng); }
+  .log-txt { font-size:11px; color:var(--tx); line-height:1.6; font-family:'Share Tech Mono',monospace; }
+  .chip { display:inline-block; border-radius:4px; padding:1px 6px; margin:1px 2px; font-size:10px; }
+  .chip-word { background:rgba(251,191,36,0.15); color:#fbbf24; }
+  .chip-match { background:rgba(0,245,196,0.15); color:var(--ng); }
+  .chip-miss { background:rgba(255,255,255,0.04); color:var(--tm); text-decoration:line-through; }
+  .conf-bar-bg { height:5px; border-radius:3px; background:rgba(255,255,255,0.06); overflow:hidden; margin-top:6px; }
+  .conf-bar-fill { height:100%; border-radius:3px; background:var(--ng); transition:width 0.6s ease; }
+  .conf-val { font-size:10px; color:var(--ng); margin-top:3px; font-family:'Share Tech Mono',monospace; }
+  .thinking { display:flex; gap:4px; align-items:center; padding:2px 0; }
+  .thinking span { width:5px; height:5px; border-radius:50%; background:var(--ng); animation:bounce 1.2s infinite; opacity:0.5; }
+  .thinking span:nth-child(2){animation-delay:0.2s} .thinking span:nth-child(3){animation-delay:0.4s}
+  @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+  /* TEMAS RÁPIDOS */
+  .quick-topics { padding:6px 0; display:flex; gap:7px; flex-wrap:wrap; flex-shrink:0; }
+  .topic-btn { background:transparent; border:1px solid var(--br); color:var(--tm); font-family:'Exo 2',sans-serif; font-size:11px; padding:4px 10px; border-radius:20px; cursor:pointer; transition:all 0.2s; }
+  .topic-btn:hover { border-color:var(--ng); color:var(--ng); background:rgba(0,245,196,0.05); }
+
+  /* CHAT */
+  .chat-area { flex:1; overflow-y:auto; padding:8px 0; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; scrollbar-color:var(--br) transparent; }
+  .chat-area::-webkit-scrollbar { width:4px; }
+  .chat-area::-webkit-scrollbar-thumb { background:var(--br); border-radius:2px; }
+  .message { display:flex; gap:9px; animation:fadeIn 0.3s ease; }
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .message.user { flex-direction:row-reverse; }
+  .avatar { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:2px; font-weight:700; }
+  .avatar.bot { background:rgba(0,245,196,0.08); border:1px solid rgba(0,245,196,0.25); color:var(--ng); font-family:'Share Tech Mono',monospace; }
+  .avatar.user { background:rgba(91,143,255,0.08); border:1px solid rgba(91,143,255,0.25); color:var(--nb); font-size:15px; }
+  .bubble { max-width:82%; padding:10px 14px; border-radius:13px; font-size:13px; line-height:1.6; }
+  .bubble.bot { background:var(--bb); border:1px solid rgba(0,245,196,0.12); border-top-left-radius:4px; }
+  .bubble.user { background:var(--ub); border:1px solid rgba(91,143,255,0.15); border-top-right-radius:4px; text-align:right; }
+  .bubble .ts { font-size:10px; color:var(--tm); font-family:'Share Tech Mono',monospace; margin-top:5px; display:block; }
+  .opts { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+  .opt-btn { background:rgba(0,245,196,0.05); border:1px solid rgba(0,245,196,0.2); color:var(--ng); font-family:'Exo 2',sans-serif; font-size:11px; padding:5px 10px; border-radius:7px; cursor:pointer; transition:all 0.2s; }
+  .opt-btn:hover { background:rgba(0,245,196,0.12); }
+  strong { color:var(--ng); }
+  ul { padding-left:15px; margin-top:5px; }
+  ul li { margin-bottom:3px; font-size:12px; }
+  .hl-g { color:var(--ng); font-weight:600; }
+  .hl-b { color:var(--nb); font-weight:600; }
+
+  /* INPUT */
+  .input-area { padding:10px 0 16px; border-top:1px solid var(--br); flex-shrink:0; }
+  .input-row { display:flex; gap:9px; align-items:flex-end; }
+  #userInput { flex:1; background:var(--bgi); border:1px solid var(--br); border-radius:11px; padding:11px 14px; color:var(--tx); font-family:'Exo 2',sans-serif; font-size:13px; resize:none; outline:none; transition:border-color 0.2s; max-height:90px; line-height:1.5; }
+  #userInput::placeholder { color:var(--tm); }
+  #userInput:focus { border-color:rgba(0,245,196,0.4); }
+  #sendBtn { width:43px; height:43px; background:var(--ng); border:none; border-radius:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; box-shadow:0 0 12px rgba(0,245,196,0.3); }
+  #sendBtn:hover { opacity:0.85; transform:scale(1.04); }
+  #sendBtn svg { width:18px; height:18px; }
+  .hint { font-size:10px; color:var(--tm); font-family:'Share Tech Mono',monospace; margin-top:6px; letter-spacing:0.5px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header>
+    <div class="logo-icon">
+      <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="24" height="24" rx="5" stroke="#00f5c4" stroke-width="1.2"/>
+        <line x1="7" y1="19" x2="7" y2="11" stroke="#00f5c4" stroke-width="2" stroke-linecap="round"/>
+        <line x1="7" y1="11" x2="19" y2="19" stroke="#00f5c4" stroke-width="2" stroke-linecap="round"/>
+        <line x1="19" y1="19" x2="19" y2="11" stroke="#00f5c4" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="7" cy="11" r="2" fill="#00f5c4"/>
+        <circle cx="19" cy="11" r="2" fill="#00f5c4"/>
+        <circle cx="7" cy="19" r="2" fill="#00f5c4"/>
+        <circle cx="19" cy="19" r="2" fill="#00f5c4"/>
+      </svg>
+    </div>
+    <div style="flex:1">
+      <div class="brand-name">Nex<span>Core</span> Tech</div>
+      <div class="status-line">
+        <div class="sdot"></div>
+        <div class="stxt">ASISTENTE EN LÍNEA</div>
+      </div>
+    </div>
+    <div class="hbadge">SOPORTE TÉCNICO<br>DE JUJUY AL MUNDO</div>
+    <button class="trans-btn" id="transBtn" onclick="toggleTrans()">
+      <span class="trans-icon">🔍</span> Modo transparente
+    </button>
+  </header>
+
+  <div class="main-content">
+
+    <!-- COLUMNA CHAT -->
+    <div class="chat-col">
+      <div class="quick-topics">
+        <button class="topic-btn" onclick="qs('Mi computadora no enciende')">💻 PC no enciende</button>
+        <button class="topic-btn" onclick="qs('Tengo problemas con el WiFi')">📡 WiFi</button>
+        <button class="topic-btn" onclick="qs('Mi equipo está muy lento')">🐢 Lento</button>
+        <button class="topic-btn" onclick="qs('Creo que tengo un virus')">🦠 Virus</button>
+        <button class="topic-btn" onclick="qs('Quiero saber los precios')">💰 Precios</button>
+        <button class="topic-btn" onclick="qs('Quiero agendar una visita')">📅 Visita</button>
+      </div>
+
+      <div class="chat-area" id="chatArea">
+        <div class="message">
+          <div class="avatar bot">NC</div>
+          <div class="bubble bot">
+            ¡Hola! Soy el asistente virtual de <strong>NexCore Tech</strong>. Estoy acá para ayudarte. 🛠️<br><br>
+            ¿En qué puedo ayudarte hoy?
+            <div class="opts">
+              <button class="opt-btn" onclick="qs('Tengo un problema con mi computadora')">💻 Problema con PC</button>
+              <button class="opt-btn" onclick="qs('Tengo un problema con la red')">🌐 Red / Internet</button>
+              <button class="opt-btn" onclick="qs('Quiero saber los precios')">💰 Ver precios</button>
+              <button class="opt-btn" onclick="qs('Quiero agendar una visita')">📅 Agendar visita</button>
+            </div>
+            <span class="ts">Hoy · Ahora</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-row">
+          <textarea id="userInput" rows="1" placeholder="Escribí tu consulta acá..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button id="sendBtn" onclick="send()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0a0a12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="hint">↵ ENTER para enviar · SHIFT+ENTER nueva línea</div>
+      </div>
+    </div>
+
+    <!-- COLUMNA LOG -->
+    <div class="log-col" id="logCol">
+      <div class="log-panel">
+        <div class="log-header">
+          <div class="log-dot"></div>
+          <div class="log-header-title">PROCESO INTERNO DEL BOT</div>
+        </div>
+        <div class="log-body" id="logBody">
+          <div class="log-empty" id="logEmpty">
+            Escribí algo en el chat<br>para ver cómo piensa<br>el bot en tiempo real ←
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const R = {
+  noEnciende:{kw:['no enciende','no prende','no arranca','no inicia','pantalla negra'],r:`Entendido, la PC no enciende. Vamos paso a paso. 🔍<br><br><strong>Verificá lo básico:</strong><ul><li>¿El cable de alimentación está conectado?</li><li>¿La regleta tiene energía?</li><li>¿El botón hace algún sonido o parpadeo?</li></ul><br>¿Qué pasa cuando apretás el botón?`,ops:['No pasa absolutamente nada','Hace un sonido pero no arranca','Enciende pero se apaga solo','Pantalla negra pero el equipo enciende']},
+  nadaPC:{kw:['no pasa nada','absolutamente nada','sin sonido','sin luz'],r:`Si no pasa nada, el problema es eléctrico. ⚡<br><br><strong>Pasos:</strong><ul><li>Probá con otro cable de alimentación</li><li>En PC de escritorio revisá el switch de la fuente</li><li>Probá en otro tomacorriente</li><li>En notebook, intentá sin batería solo con el cargador</li></ul><br>Si nada funciona, puede ser la <strong>fuente de alimentación</strong>.`,ops:['Quiero agendar una visita','Tengo otra consulta']},
+  apagaSolo:{kw:['se apaga','apaga solo','se reinicia'],r:`Que se apague solo puede ser sobrecalentamiento o falla en la fuente. 🌡️<br><br><strong>Causas frecuentes:</strong><ul><li>El ventilador está lleno de polvo</li><li>La pasta térmica está seca</li><li>La fuente está fallando</li></ul>`,ops:['Quiero agendar una visita','Tengo otra consulta']},
+  wifi:{kw:['wifi','internet','red','conexion','conexión','no conecta','sin internet'],r:`Problemas de conectividad, entendido. 📡<br><br><strong>¿El problema es en uno o todos los dispositivos?</strong>`,ops:['Solo falla en mi computadora','Falla en todos los dispositivos','La red no aparece','Conecta pero no hay internet']},
+  soloPCwifi:{kw:['solo falla en mi','solo en mi computadora'],r:`Si falla solo en tu PC, es el adaptador WiFi o los drivers. 💻<br><br><strong>Solución:</strong><ul><li>Desactivá y volvé a activar el WiFi</li><li>Reiniciá el equipo</li><li>Actualizá el driver de red en Administrador de dispositivos</li></ul>`,ops:['Se solucionó','Sigue sin funcionar','Quiero agendar una visita']},
+  todoswifi:{kw:['falla en todos','todos los dispositivos'],r:`Si falla en todos, el problema es el router. 📡<br><br><strong>Pasos:</strong><ul><li>Apagá el router, esperá 30 segundos y volvé a encenderlo</li><li>Verificá los cables del router</li><li>Llamá a tu proveedor para ver si hay un corte</li></ul>`,ops:['Se solucionó','Sigue sin funcionar','Quiero agendar una visita']},
+  lento:{kw:['lento','tarda','demora','lenta','cuelga','se traba','trabado'],r:`Un equipo lento tiene solución. 🐢➡️⚡<br><br><strong>Causas más comunes:</strong><ul><li>Poco espacio en el disco duro</li><li>Demasiados programas al inicio</li><li>Virus o malware</li><li>Poca RAM</li></ul><br>¿Cuándo empezó a ponerse lento?`,ops:['Siempre fue lento','Empezó hace poco','Solo al encender','Con ciertos programas']},
+  virus:{kw:['virus','malware','infectado','publicidad','ventanas','pop'],r:`Posible infección. Actuemos rápido. 🦠<br><br><strong>⚠️ No hagas clic en ningún mensaje de alerta.</strong><br><br>¿Tenés antivirus instalado?`,ops:['Sí tengo antivirus','No tengo antivirus','No sé si tengo']},
+  sinAntivirus:{kw:['no tengo antivirus','sin antivirus'],r:`Sin antivirus el equipo queda expuesto. 🛡️<br><br><strong>Opciones gratuitas:</strong><ul><li><strong>Windows Defender</strong> — ya viene en Windows 10/11</li><li><strong>Malwarebytes</strong> — excelente para eliminar malware</li><li><strong>Avast Free</strong> — buena protección en tiempo real</li></ul>`,ops:['Quiero agendar una visita','Tengo otra consulta']},
+  precios:{kw:['precio','costo','cuánto','cuanto','vale','cobran','tarifa','presupuesto'],r:`Precios con garantía del trabajo. 💰<br><br><span class="hl-g">🟢 SOPORTE</span><br>• Diagnóstico: desde $15.000<br>• Formateo + S.O.: desde $18.000<br>• Eliminación de virus: desde $16.000<br>• Mantenimiento: desde $17.000<br>• Recuperación de datos: desde $15.000<br><br><span class="hl-b">🔵 TECNOLOGÍA</span><br>• Config. WiFi: desde $16.000<br>• Red domiciliaria: desde $22.000<br>• Cámaras: desde $20.000<br><br>⚪ <strong>SOLUCIONES</strong><br>• Backup automático: desde $18.000<br>• Optimización: desde $16.500<br>• Auditoría: desde $15.000<br><br><strong>📍 Visita técnica: $35.000</strong> (gratis si el servicio supera ese monto)`,ops:['Quiero agendar una visita','Tengo otra consulta']},
+  visita:{kw:['visita','agendar','turno','cita','domicilio','reservar'],r:`Coordinamos tu visita. 📅<br><br><strong>¿Cómo funciona?</strong><ul><li>Costo: <strong>$35.000</strong></li><li>Si el servicio supera ese monto, <strong>la visita no se cobra</strong></li><li>Zona: San Salvador de Jujuy y alrededores</li><li>Horario: Lun-Vie 9-18 hs · Sáb 9-13 hs</li></ul><br>📱 <strong>WhatsApp:</strong> +54 9 388 000-0000<br>📧 <strong>Email:</strong> contacto@nexcoretech.com.ar`,ops:['Tengo otra consulta','¡Gracias!']},
+  gracias:{kw:['gracias','gracia','muchas gracias','genial','perfecto','listo','buenisimo'],r:`¡De nada! Un placer ayudarte. 😊<br><br><span class="hl-g">De Jujuy al mundo — tu tecnología es nuestra prioridad.</span>`,ops:['Tengo otra consulta']},
+  default:{r:`Entendido, voy a derivar tu consulta al equipo técnico. 🛠️<br><br>📱 <strong>WhatsApp:</strong> +54 9 388 000-0000<br>📧 <strong>Email:</strong> contacto@nexcoretech.com.ar`,ops:['Quiero agendar una visita','Ver precios','Tengo otra consulta']}
+};
+
+let modoTrans = false;
+
+function toggleTrans(){
+  modoTrans = !modoTrans;
+  const btn = document.getElementById('transBtn');
+  const col = document.getElementById('logCol');
+  if(modoTrans){
+    col.classList.add('visible');
+    btn.classList.add('active');
+    btn.innerHTML = '<span class="trans-icon">🔍</span> Ocultar proceso';
+  } else {
+    col.classList.remove('visible');
+    btn.classList.remove('active');
+    btn.innerHTML = '<span class="trans-icon">🔍</span> Modo transparente';
+  }
+}
+
+function getResp(text){
+  const l = text.toLowerCase();
+  for(const k of Object.keys(R)){
+    if(k==='default') continue;
+    if(R[k].kw && R[k].kw.some(w=>l.includes(w))) return {key:k, data:R[k]};
+  }
+  return {key:'default', data:R.default};
+}
+
+function getTime(){
+  const n=new Date();
+  return `Hoy · ${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`;
+}
+
+function addMsg(html, sender){
+  const c=document.getElementById('chatArea');
+  const d=document.createElement('div');
+  d.className=`message ${sender}`;
+  const av=`<div class="avatar ${sender}">${sender==='bot'?'NC':'👤'}</div>`;
+  const bu=`<div class="bubble ${sender}">${html}<span class="ts">${getTime()}</span></div>`;
+  d.innerHTML=sender==='bot'?av+bu:bu+av;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+function addTyping(){
+  const c=document.getElementById('chatArea');
+  const d=document.createElement('div');
+  d.className='message'; d.id='typing';
+  d.innerHTML=`<div class="avatar bot">NC</div><div class="bubble bot"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function removeTyping(){ const t=document.getElementById('typing'); if(t)t.remove(); }
+
+function addOpts(opts){
+  if(!opts||!opts.length) return;
+  const c=document.getElementById('chatArea');
+  const d=document.createElement('div');
+  d.className='message'; d.id='lastOpts';
+  const bs=opts.map(o=>`<button class="opt-btn" onclick="qs('${o}')">${o}</button>`).join('');
+  d.innerHTML=`<div class="avatar bot" style="opacity:0;pointer-events:none">NC</div><div class="bubble bot" style="background:transparent;border:none;padding:4px 0;"><div class="opts">${bs}</div></div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function removeOpts(){ const o=document.getElementById('lastOpts'); if(o)o.remove(); }
+
+/* LOG */
+function addLog(type, label, content){
+  const body = document.getElementById('logBody');
+  const empty = document.getElementById('logEmpty');
+  if(empty) empty.remove();
+  const d=document.createElement('div');
+  d.className=`log-entry ${type}`;
+  d.innerHTML=`<div class="log-lbl ${type}">${label}</div><div class="log-txt">${content}</div>`;
+  body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+
+function addLogThinking(){
+  const body=document.getElementById('logBody');
+  const empty=document.getElementById('logEmpty');
+  if(empty) empty.remove();
+  const d=document.createElement('div');
+  d.className='log-entry parse'; d.id='logThinking';
+  d.innerHTML=`<div class="log-lbl parse">PROCESANDO...</div><div class="thinking"><span></span><span></span><span></span></div>`;
+  body.appendChild(d); body.scrollTop=body.scrollHeight;
+}
+function removeLogThinking(){ const t=document.getElementById('logThinking'); if(t)t.remove(); }
+
+function clearLog(){
+  const body=document.getElementById('logBody');
+  body.innerHTML=`<div class="log-empty" id="logEmpty">Escribí algo en el chat<br>para ver cómo piensa<br>el bot en tiempo real ←</div>`;
+}
+
+function send(){
+  const inp=document.getElementById('userInput');
+  const txt=inp.value.trim();
+  if(!txt) return;
+  removeOpts();
+  if(modoTrans) clearLog();
+  addMsg(txt,'user');
+  inp.value=''; inp.style.height='auto';
+  addTyping();
+  if(modoTrans) addLogThinking();
+
+  const words = txt.toLowerCase().split(/\s+/).filter(Boolean);
+
+  setTimeout(()=>{
+    if(modoTrans){
+      removeLogThinking();
+      // Log 1: recepción
+      addLog('recv','1 · RECEPCIÓN',`Texto: <span class="chip chip-match">"${txt}"</span><br>Chars: ${txt.length} · Palabras: ${words.length}`);
+    }
+
+    setTimeout(()=>{
+      if(modoTrans){
+        // Log 2: análisis
+        const chipsHtml = words.map(w=>`<span class="chip chip-word">${w}</span>`).join('');
+        addLog('parse','2 · ANÁLISIS DE PALABRAS',`Palabras detectadas:<br>${chipsHtml}`);
+      }
+
+      setTimeout(()=>{
+        const res = getResp(txt);
+        removeTyping();
+
+        if(modoTrans){
+          if(res.key !== 'default'){
+            const matchedKw = res.data.kw.find(w=>txt.toLowerCase().includes(w));
+            const allKw = res.data.kw.map(k=>
+              k===matchedKw
+                ? `<span class="chip chip-match">${k} ✓</span>`
+                : `<span class="chip chip-miss">${k}</span>`
+            ).join('');
+            addLog('match','3 · COINCIDENCIA ENCONTRADA',`Categoría: <span class="chip chip-match">${res.key}</span><br>Clave: <span class="chip chip-match">"${matchedKw}"</span><br>${allKw}`);
+
+            const conf = Math.floor(76 + Math.random()*21);
+            setTimeout(()=>{
+              addLog('conf','4 · CONFIANZA DE RESPUESTA',`<div class="conf-bar-bg"><div class="conf-bar-fill" style="width:${conf}%"></div></div><div class="conf-val">${conf}% — respuesta seleccionada</div>`);
+              setTimeout(()=>{
+                addLog('out','5 · RESPUESTA ENVIADA',`Categoría <span class="chip chip-match">${res.key}</span> → mensaje construido y enviado al usuario.`);
+                addMsg(res.data.r,'bot');
+                if(res.data.ops) addOpts(res.data.ops);
+              },500);
+            },500);
+          } else {
+            addLog('nomatch','3 · SIN COINCIDENCIA',`Ninguna categoría reconocida.<br>Activando respuesta por defecto.`);
+            setTimeout(()=>{
+              addLog('out','4 · RESPUESTA POR DEFECTO',`Mensaje de fallback enviado al usuario.`);
+              addMsg(res.data.r,'bot');
+              if(res.data.ops) addOpts(res.data.ops);
+            },500);
+          }
+        } else {
+          addMsg(res.data.r,'bot');
+          if(res.data.ops) addOpts(res.data.ops);
+        }
+      },600);
+    },400);
+  },500);
+}
+
+function qs(t){ document.getElementById('userInput').value=t; send(); }
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,90)+'px'; }
+</script>
+</body>
+</html>

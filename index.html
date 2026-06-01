@@ -171,7 +171,7 @@
 
       <div class="chat-area" id="chatArea">
         <div class="message">
-          <div class="avatar bot">NC</div>
+          <div class="avatar bot"><img src="llamabot.png" style="width:28px;height:28px;border-radius:6px;object-fit:cover;"></div>
           <div class="bubble bot">
             ¡Hola! Soy el asistente virtual de <strong>LLamaBot Tech</strong>. Estoy acá para ayudarte. 🛠️<br><br>
             ¿En qué puedo ayudarte hoy?
@@ -269,7 +269,7 @@ function addMsg(html, sender){
   const c=document.getElementById('chatArea');
   const d=document.createElement('div');
   d.className=`message ${sender}`;
-  const av=`<div class="avatar ${sender}">${sender==='bot'?'NC':'👤'}</div>`;
+  const av=`<div class="avatar ${sender}">${sender==='bot'?'<img src="llamabot.png" style="width:32px;height:32px;border-radius:8px;object-fit:cover;">':'👤'}</div>`;
   const bu=`<div class="bubble ${sender}">${html}<span class="ts">${getTime()}</span></div>`;
   d.innerHTML=sender==='bot'?av+bu:bu+av;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
@@ -279,7 +279,7 @@ function addTyping(){
   const c=document.getElementById('chatArea');
   const d=document.createElement('div');
   d.className='message'; d.id='typing';
-  d.innerHTML=`<div class="avatar bot">NC</div><div class="bubble bot"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+  d.innerHTML=`<div class="avatar bot"><img src="llamabot.png" style="width:28px;height:28px;border-radius:6px;object-fit:cover;"></div><div class="bubble bot"><div class="thinking"><span></span><span></span><span></span></div></div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 function removeTyping(){ const t=document.getElementById('typing'); if(t)t.remove(); }
@@ -290,7 +290,7 @@ function addOpts(opts){
   const d=document.createElement('div');
   d.className='message'; d.id='lastOpts';
   const bs=opts.map(o=>`<button class="opt-btn" onclick="qs('${o}')">${o}</button>`).join('');
-  d.innerHTML=`<div class="avatar bot" style="opacity:0;pointer-events:none">NC</div><div class="bubble bot" style="background:transparent;border:none;padding:4px 0;"><div class="opts">${bs}</div></div>`;
+  d.innerHTML=`<div class="avatar bot" style="opacity:0;pointer-events:none"><img src="llamabot.png" style="width:28px;height:28px;border-radius:6px;object-fit:cover;"></div><div class="bubble bot" style="background:transparent;border:none;padding:4px 0;"><div class="opts">${bs}</div></div>`;
   c.appendChild(d); c.scrollTop=c.scrollHeight;
 }
 function removeOpts(){ const o=document.getElementById('lastOpts'); if(o)o.remove(); }
